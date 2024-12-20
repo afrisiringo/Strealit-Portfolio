@@ -74,8 +74,7 @@ st.markdown("---")
 
 @st.cache_resource
 def load_data():
-    filepath = r"C:\Users\sirin\OneDrive\Desktop\MyStreamlitPorto\Strealit-Portfolio\assets\Black_Pearl_Sales.xlsx"
-    return pd.read_excel(filepath)
+    return pd.read_excel('./assets/Black_Pearl_Sales.xlsx')
 
 sales = load_data()
 
@@ -401,8 +400,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Load data dari kedua file CSV
-original_sales_df = pd.read_csv(r"C:\Users\sirin\OneDrive\Desktop\MyStreamlitPorto\Strealit-Portfolio\assets\original_sales.csv")
-forecast_sales_df = pd.read_csv(r"C:\Users\sirin\OneDrive\Desktop\MyStreamlitPorto\Strealit-Portfolio\assets\sales_forecast.csv")
+original_sales_df = pd.read_csv('./assets/original_sales.csv')
+forecast_sales_df = pd.read_csv('sales_forecast.csv')
 
 # Membuat line graph
 fig = go.Figure()
