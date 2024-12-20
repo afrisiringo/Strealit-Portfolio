@@ -401,7 +401,7 @@ st.markdown("""
 
 # Load data dari kedua file CSV
 original_sales_df = pd.read_csv('./assets/original_sales.csv')
-forecast_sales_df = pd.read_csv('sales_forecast.csv')
+forecast_sales_df = pd.read_csv('./assets/sales_forecast.csv')
 
 # Membuat line graph
 fig = go.Figure()
