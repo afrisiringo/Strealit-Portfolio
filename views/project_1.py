@@ -72,7 +72,6 @@ st.markdown("---")
 
 # --- DATASET ---
 
-@st.cache_resource
 def load_data():
     return pd.read_excel('./assets/Black_Pearl_Sales.xlsx')
 
