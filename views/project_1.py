@@ -18,20 +18,13 @@ def sql(sql_query):
 
 st.title("Black Pearl Coffee Shop Sales", anchor=False)
 
-# --- BACKGROUND ---
+url = 'https://github.com/afrisiringo/Black-Pearl-Coffee-Shop-Sales-Analysis'
 
-# Menjelaskan fungsi dari link GitHub dengan HTML
-st.markdown("<i>Click the GitHub icon below to view the Jupyter notebook source code for this project:</i>", unsafe_allow_html=True)
-
-# Menambahkan link ke GitHub dengan ikon
-st.markdown(
-    "[![Github](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)]"
-    "(https://github.com/afrisiringo/Black-Pearl-Coffee-Shop-Sales-Analysis/blob/main/Sales_Analysis.ipynb)",
-    unsafe_allow_html=True
-)
+st.markdown(f"<i>To access the full project details and source code, please click this <a href='{url}'>link</a>.</i>", unsafe_allow_html=True)
 
 st.markdown("---")
 
+# --- BACKGROUND ---
 
 st.markdown("""
 ### Background
@@ -71,7 +64,7 @@ st.markdown("""
 st.markdown("---")
 
 # --- DATASET ---
-
+@st.cache_data
 def load_data():
     return pd.read_excel('./assets/Black_Pearl_Sales.xlsx')
 
