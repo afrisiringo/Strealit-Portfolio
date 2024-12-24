@@ -2,16 +2,27 @@ import streamlit as st
 
 # Data manipulation
 import pandas as pd
-import numpy as np
 
 # Data viz
-import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+import folium
 
-# --- Title ---
-st.title("E-commerce Strategy: Invest in App or Website for Max ROI?")
+# SQL query
+import duckdb as db
 
+# SQL function
+def sql(sql_query):
+    return db.sql(sql_query).to_df()
 
-url = 'https://github.com/afrisiringo/Website-vs-App/blob/main/analysis.ipynb'
+# choose chart style
+import matplotlib as mpl
+mpl.style.use('ggplot')
+
+st.title("COVID-19 Case Distribution and Determinants in Indonesia", anchor=False)
+
+url = 'https://github.com/afrisiringo/COVID-19-Case-Distribution-and-Determinants-in-Indonesia/blob/main/covid_analysis.ipynb'
 
 st.markdown(f"<i>To access the full project details and source code, please click this <a href='{url}'>link</a>.</i>", unsafe_allow_html=True)
 
@@ -22,110 +33,341 @@ st.markdown("---")
 st.markdown("""
 ### Background
 <p style='text-align: justify; padding: 1px;'>
-X is an Ecommerce company that sells clothing online but they also have in-store style and clothing advice sessions. Customers come in to the store, have sessions/meetings with a personal stylist, 
-then they can go home and order either on a mobile app or website for the clothes they want.
-<br><br>
-The company is trying to decide whether to focus their efforts on their mobile app experience or their website.
+We are data analysts of a health organization tasked with analyzing covid data in Indonesia. This data will be used as a reference when a new outbreak such as covid occurs.
 </p>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
+# --- OBJECTIVE ---
+
+st.markdown("""
+### Objective
+<p style='text-align: justify; padding: 1px;'>
+Analyzing the trend of Covid spread in Indonesia and the influence of population density on the total number of new cases in the regions.
+</p>
+""", unsafe_allow_html=True)
+
 
 # --- DATASET ---
+
+url2 = 'https://drive.google.com/file/d/18VF6pcAgSax_vOxIvZ26HV3z8rD5g_6i/view?usp=sharing'
 
 st.markdown("""
 ### Dataset
 <p style='text-align: justify; padding: 1px;'>
-The data used is information about E-commerce X's customer accounts.
+The dataset contains COVID-19 data spanning from March 2020 to September 2022. The dataset is provided in this <a href='{url2}'>link</a>
 </p>
 """, unsafe_allow_html=True)
 
-@st.cache_data
-def load_data():
-    return pd.read_csv('./assets/Ecommerce Customers')
 
-customers = load_data()
+df = pd.read_csv('./assets/covid_19_indonesia_time_series_all.csv', parse_dates=['Date'])
 
-# Menampilkan DataFrame di Streamlit
-st.dataframe(customers)
+# Change the string format of column names to make queries easier
+df.columns = (
+    df.columns.str.lower()
+    .str.replace(' ', '_')
+    .str.replace('(', '')
+    .str.replace(')', '')
+)
 
-st.markdown("---")
+# drop unused columns
+df = (
+    df.drop([
+        'province',
+        'country',
+        'continent',
+    ], axis= 1)
+)
+
+df = df[df['location_level']=='Province']
+
+df = df.drop('location_level', axis=1)
+
+df = df.dropna(axis=1).reset_index(drop=True)
+
+# --- Trend of New Cases per Month ---
 
 st.markdown("""
-### Relationships between the numerical features
+### Trend of New Cases per Month
+""", unsafe_allow_html=True)
+
+# create data frame of new cases per month
+new_cases_per_month_num = sql(
+    """
+    WITH monthly_cases AS (
+        SELECT 
+            DATE_TRUNC('month', date) AS month,
+            SUM(new_cases) AS total_new_cases
+        FROM df
+        GROUP BY month
+        ORDER BY month
+    )
+    SELECT 
+        month,
+        total_new_cases
+    FROM monthly_cases
+    ORDER BY month
+    """
+)
+
+new_cases_per_month_name = sql(
+    """
+    SELECT 
+        STRFTIME(month, '%b %Y') AS month_year,
+        total_new_cases,
+    FROM new_cases_per_month_num
+    """
+)
+
+def plot_new_cases_per_month():
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    ax.plot(new_cases_per_month_name['month_year'], new_cases_per_month_name['total_new_cases'],
+            label='Total New Cases', color='blue')
+
+    plt.title('COVID New Cases per Month')
+    plt.xticks(rotation=65)
+    ax.ticklabel_format(axis='y', style='plain', useOffset=False)
+    ax.yaxis.set_major_locator(plt.MultipleLocator(100000))
+
+    plt.annotate('',  
+                 xy=(15, 1200000), 
+                 xytext=(13.9, 300000),  
+                 xycoords='data',  
+                 arrowprops=dict(arrowstyle='->', connectionstyle='arc3', color='orange', lw=2))
+
+    plt.annotate('Eid al-Fitr Celebration (May 2021)',
+                 xy=(13.3, 400000),  
+                 rotation=84.4,  
+                 va='bottom', 
+                 ha='left',
+                 fontsize=11)
+
+    plt.annotate('',  
+                 xy=(22, 1170000), 
+                 xytext=(21, 200000),  
+                 xycoords='data',  
+                 arrowprops=dict(arrowstyle='->', connectionstyle='arc3', color='orange', lw=2))
+
+    plt.annotate('Omicron Variant Wave (Jan-Feb 2022)',
+                 xy=(20.4, 250000),  
+                 rotation=85.3,  
+                 va='bottom', 
+                 ha='left',
+                 fontsize=11)
+
+    st.pyplot(fig)
+
+plot_new_cases_per_month()
+
+st.markdown("""
 <p style='text-align: justify; padding: 1px;'>
-The interrelationships among numerical variables were examined by utilizing Seaborn's pairplot function.
+We observe two prominent spikes in cases, occurring in May-July 2021 and January-February 2022, which we will explore further.
+<br>            
+<b>First Spike: May-July 2021</b>
+<br>           
+In mid 2021, there was a significant increase in new cases. Although direct supporting data for this analysis is lacking, this spike coincides with the period following the Eid al-Fitr 
+celebration, one of the largest holidays in Indonesia. Traditionally, this celebration is accompanied by mass travel, known as 'mudik', potentially leading to increased social interactions and mobility.
+
+Without definitive data to link the spike solely to the Eid celebration—such as mobility reports or social interaction levels—it's reasonable to hypothesize that major events like Eid al-Fitr 
+could potentially influence the spread of the virus, based on general understandings of infectious disease transmission.
+
+<b>Second Spike: January-February 2022</b>
+<br>
+A significant increase occurred in early 2022, coinciding with the emergence of the highly transmissible Omicron variant globally. Again, while specific data to prove direct causality in 
+Indonesia is absent, global patterns suggest that the spread of the Omicron variant contributed to increased cases in many countries, likely including Indonesia
+
+<b>Discussion</b>
+<br>
+When analyzing this data, it's important to remember that seeing a trend doesn't necessarily mean one event causes another. Without more data, we should avoid making firm conclusions. 
+Nonetheless, these observations point out the need for more detailed analysis to better understand the factors affecting COVID-19 case trends.
+<br>
+<b>Conclusion</b>
+<br>
+This chart provides valuable insights into the dynamics of COVID-19 spread in Indonesia, illustrating the importance of public health policies and effective monitoring. Furthermore, it 
+underscores the necessity for preparedness in facing potential future surges, which could be triggered by large social events or the emergence of new variants.
 </p>
 """, unsafe_allow_html=True)
 
-pairplot = sns.pairplot(customers)
-st.pyplot(pairplot.fig)
+st.markdown("""
+### Total New Cases vs New Deaths vs New Recovered per Month
+""", unsafe_allow_html=True)
+
+compare_trend_num = sql(
+    """
+    SELECT 
+        DATE_TRUNC('month', date) AS month,
+        SUM(new_cases) AS total_new_cases,
+        SUM(new_deaths) AS total_new_deaths,
+        SUM(new_recovered) AS total_new_recovered
+    FROM df
+    GROUP BY month
+    ORDER BY month
+    """
+)
+
+compare_trend_name = sql(
+    """
+    SELECT 
+        STRFTIME(month, '%b %Y') AS month_year,
+        total_new_cases,
+        total_new_deaths,
+        total_new_recovered
+    FROM compare_trend_num
+    """
+)
+
+fig, ax = plt.subplots(figsize= (12, 6))
+
+ax.plot(compare_trend_name['month_year'], compare_trend_name['total_new_cases'], label= 'Total New Cases')
+ax.plot(compare_trend_name['month_year'], compare_trend_name['total_new_deaths'], label= 'Total New Deaths')
+ax.plot(compare_trend_name['month_year'], compare_trend_name['total_new_recovered'], label= 'Total New Recovered')
+
+ax.set_xlabel('')
+ax.set_ylabel('')
+ax.set_title('Total New Cases vs New Deaths vs New Recovered per Month')
+ax.legend()
+
+plt.xticks(rotation= 65)
+ax.ticklabel_format(axis= 'y', style= 'plain', useOffset= False)
+ax.yaxis.set_major_locator(plt.MultipleLocator(100000))
+st.pyplot(fig)
 
 st.markdown("""
 <p style='text-align: justify; padding: 1px;'>
-From this visual we can see several points of analysis:
+<b>Second Spike: January-February 2022</b><br>
+The graph shows a strong correlation between the rise and fall of new cases and new recoveries. 
+This suggests that as more people are diagnosed with COVID-19, more people recover, likely due to the concurrent handling of these cases within the healthcare system.
+<br><b>Second Spike: January-February 2022</b><br>
+There is a noticeable increase in deaths that accompanies the rise in new cases during 2021. However, during the surge in 2022, the increase in deaths is less 
+pronounced compared to the increase in cases. This could potentially be attributed to several factors, such as improved treatments or higher vaccination rates.
 </p>
-<ul style='text-align: justify; padding: 10px;'>       
-<li>There is a positive correlation between <b>Time on App</b> and <b>Yearly Amount Spent</b>, indicating that the more time customers spend in the app, the more they spend. This could be a reason to improve 
-the user experience in the app.</li>
-<li>The relationship between <b>Time on Website</b> and <b>Yearly Amount Spent</b> appears weaker. This could indicate that websites may not be as effective as apps in driving sales, or that there is room 
-for improvement on websites.</li>
-<li>There is a strong linear relationship between <b>Length of Membership</b> and <b>Yearly Amount Spent</b>. This shows that the longer a customer is a member, the more money they spend each year. This 
-emphasizes the importance of retaining existing customers.</li>
-</ul>
 """, unsafe_allow_html=True)
 
 st.markdown("""
-### Regression analysis
+### Distribution of COVID-19 Cases in Indonesia by Location
+""", unsafe_allow_html=True)
+
+new_cases_by_location = sql(
+    """
+    SELECT 
+        island,
+        location,
+        SUM(new_cases) AS total_new_cases
+    FROM df
+    GROUP BY island, location
+    ORDER BY island, location
+    """
+)
+
+fig = px.sunburst(
+    new_cases_by_location,
+    path=['island', 'location'], 
+    values='total_new_cases',
+    title='Total Cases Over Time',
+    template='plotly',        
+    width=1000, 
+    height=1000
+)
+
+fig.update_traces(textinfo='label+percent parent') 
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("""
 <p style='text-align: justify; padding: 1px;'>
-To reinforce these findings and provide more targeted recommendations, regression analysis was conducted. A linear regression model was developed to predict <b>Yearly Amount Spent</b>. Subsequently, 
-the coefficients of the model was analyzed to identify which features most significantly influence changes in <b>Yearly Amount Spent</b>.
+The chart reveals that the island of Java, particularly DKI Jakarta, is the most affected by COVID-19 cases in Indonesia. DKI Jakarta alone comprises 32% of the cases, the highest among all regions. Collectively, the 
+provinces on Java—including DKI Jakarta, Jawa Barat, Jawa Tengah, and Jawa Timur—account for 69% of the total cases, indicating a significant concentration of the pandemic within this island.
 </p>
 """, unsafe_allow_html=True)
 
 st.markdown("""
+### Geographic Analysis
 <p style='text-align: justify; padding: 1px;'>
-After building the model, an evaluation was conducted to assess its performance. The results are as follows:
-</p>
-<ul style='text-align: justify; padding: 10px;'>       
-<li>Mean Absolute Error (MAE): 7.22</li>
-<li>Root Mean Square Error (RMSE): 8.93</li>
-<li>Mean Absolute Percentage Error (MAPE): 1.45%</li>
-<li>R-squared (R2): 98.90%</li>
-</ul>
-<p style='text-align: justify; padding: 1px;'>
-The model has low error metrics and high R2, this indicates that the model is very effective in predicting annual spending based on the features provided.
-</p>
-<p style='text-align: justify; padding: 1px;'>
-The following is a comparison of the coefficients of the features model:
+To see the distribution of cases in Indonesia, we can make a map by utilizing the folium library.   
 </p>
 """, unsafe_allow_html=True)
 
-# Create a DataFrame with the coefficients
-data = {
-    "Coefficient": [25.981550, 38.590159, 0.190405, 61.279097]
-}
-index = ["Avg. Session Length", "Time on App", "Time on Website", "Length of Membership"]
-df = pd.DataFrame(data, index=index)
+geo_data = sql(
+    """
+    SELECT
+        location,
+        MAX(total_cases) AS total_cases,
+        AVG(latitude) AS latitude,
+        AVG(longitude) AS longitude
+    FROM df
+    GROUP BY location;
+    """
+)
 
-# Display the DataFrame in Streamlit
-st.dataframe(df)
+m = folium.Map(location=[geo_data['latitude'].mean(), geo_data['longitude'].mean()], zoom_start=5)
+
+# Add markers for each province
+
+for i, row in geo_data.iterrows():
+    folium.Circle(
+        location=[row['latitude'], row['longitude']],
+        radius=row['total_cases']/5 ,  
+        color='crimson',  
+        fill=True,
+        fill_color='crimson',  
+        tooltip=f"{row['location']}: {row['total_cases']} cases",  
+    ).add_to(m)
+
+map_html = m._repr_html_()
+st.components.v1.html(map_html, height=500)
+
+st.markdown("""
+### Total Cases vs Population Density
+""", unsafe_allow_html=True)
+
+cases_vs_popdens = sql(
+    """
+    SELECT 
+        location,
+        MAX(total_cases) total_cases,
+        AVG(population_density) as population_density
+    FROM df
+    GROUP BY location
+    ORDER BY total_cases DESC
+    """
+)
+
+plt.style.use('default')
+
+fig, ax1 = plt.subplots(figsize=(12, 6))
+
+ax1.bar(cases_vs_popdens['location'], cases_vs_popdens['total_cases'])
+ax1.set_xlabel('')
+ax1.set_ylabel('Total Cases')   
+ax1.tick_params(axis='x', rotation=90)
+
+ax2 = ax1.twinx()
+ax2.plot(cases_vs_popdens['location'], cases_vs_popdens['population_density'], color='r', marker='o')
+ax2.set_ylabel('Average Population Density')
+
+plt.title('Comparison of Total Cases and Population Density per Province')
+st.pyplot(fig)
 
 st.markdown("""
 <p style='text-align: justify; padding: 1px;'>
-The interpretation of this value is as follows:
-</p>    
-<ul style='text-align: justify; padding: 10px;'>       
-<li>Every one unit increase in Time on App correlates to an increase of approximately 38.59 units in annual spending, demonstrating the significant impact of apps on sales.</li>
-<li>The coefficient for Time on Website is only 0.19, indicating that time spent on the website does not significantly affect customers' annual spending compared to other factors in the model.</li>
-<li>Each one-year increase in membership correlates with an increase of approximately 61.27 units in annual spending, confirming the importance of customer loyalty.</li>
-</ul>
+Generally, there appears to be a correlation between population density and the number of COVID-19 cases. 
+Provinces with higher population densities tend to have more cases. This pattern suggests that transmission rates could be influenced by the population concentration. 
+</p>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 ### Conclusion
 <p style='text-align: justify; padding: 1px;'>
-The data shows that apps have a greater impact on annual spending growth than websites. This could be a strong argument for further development focus on the mobile app experience. Meanwhile, 
-the importance of membership length in increasing spending suggests the need for strategies aimed at increasing customer retention.
+The analysis of COVID-19 data in Indonesia from March 2020 to September 2022 shows significant fluctuations in case numbers, with prominent spikes in May-July 2021 and January-February 2022. 
+These increases align with major events such as Eid al-Fitr and the global emergence of the Omicron variant. The island of Java, particularly DKI Jakarta, exhibits the highest concentration of cases, significantly impacted by factors like population density, which correlates with the spread of the virus.
 </p>
+""", unsafe_allow_html=True)
+
+st.markdown("""
+### Recommendations
+<ul style='text-align: justify; padding: 10px;'>
+<li>Implement more stringent monitoring and preventive measures during and after major holidays or events like Eid al-Fitr, when increased travel and social interaction heighten the risk of virus spread.</li>
+<li>Strengthen health infrastructure in areas with high population density, particularly on Java, to manage surges more effectively.</li>
+<li>Maintain and enhance data collection and analysis capabilities to identify emerging trends and respond quickly to potential future surges in cases.</li>
+</ul>
 """, unsafe_allow_html=True)

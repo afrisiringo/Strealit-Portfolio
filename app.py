@@ -20,11 +20,17 @@ project_2_page = st.Page(
     icon=":material/bar_chart:"
 )
 
+project_3_page = st.Page(
+    page="views/project_3.py",
+    title="Project 3",
+    icon=":material/bar_chart:"
+)
+
 # --- NAVIGATION SETUP [WITHOUT SECTIONS] ---
 pg = st.navigation(
     {
         "Info": [about_page],
-        "Projects": [project_1_page, project_2_page]
+        "Projects": [project_1_page, project_2_page, project_3_page]
     }
 )
 

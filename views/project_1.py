@@ -36,7 +36,7 @@ with the goal of supporting business growth and development.
 </p>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
+
 
 # --- OBJECTIVE
 
@@ -47,7 +47,7 @@ To derive insights that can help Black Pearl coffee shop optimize sales and impr
 </p>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
+
 
 # --- PROBLEM STATEMENT ---
 
@@ -61,7 +61,6 @@ st.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
 
 # --- DATASET ---
 @st.cache_data
@@ -80,7 +79,7 @@ The data used is sales data for 6 months from a coffee shop that just started op
 # Menampilkan DataFrame di Streamlit
 st.dataframe(sales)
 
-st.markdown("---")
+
 
 # --- DATA PREPARATION ---
 
@@ -137,7 +136,7 @@ fig.update_layout(
 # Menampilkan grafik di Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
+
 
 # --- 10 Top Earner Items ---
 
@@ -184,7 +183,7 @@ fig.update_layout(
 # Menampilkan grafik di Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
+
 
 # --- Total Sales by Product Category ---
 
@@ -230,7 +229,6 @@ fig.update_layout(
 # Menampilkan grafik di Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
 
 # --- Total Sales By Locations ---
 
@@ -274,7 +272,6 @@ fig.update_layout(
 # Menampilkan grafik di Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("---")
 
 # --- Distribution of Total Sales Per Hour: Peak Sales Times ---
 
@@ -338,7 +335,6 @@ there aren't enough sales to cover them. Additionally, adjusting the hours could
 </p> 
 """, unsafe_allow_html=True)
 
-st.markdown("---")
 
 # --- Sales Trend ---
 
@@ -383,7 +379,6 @@ st.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
 
 # --- Time Series Analysis: Sales Projection ---
 
@@ -435,7 +430,6 @@ st.markdown("""
 </ul>
 """, unsafe_allow_html=True)
 
-st.markdown("---")
 
 # --- Recomendation ---
 
